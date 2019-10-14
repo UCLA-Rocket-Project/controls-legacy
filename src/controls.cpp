@@ -21,7 +21,7 @@ byte switchValue = 0xFF & ~1;
 byte lastCachedRead = 0xFF;
 byte ledVal = 0xFF;
 long readValid = 0;
-bool flashEnable = false;
+bool keyInserted = false;
 
 void printBinary(byte inByte);
 byte reverse(byte inByte);
@@ -61,15 +61,19 @@ void loop() {
 		switchValue = lastCachedRead;
 		printBinary(switchValue);
 		// update everything in terms of switchValue
-		flashEnable = switchValue & 1;
-		if(flashEnable) {
+		keyInserted = switchValue & 1;
+		if(keyInserted) {
 			Serial.println(F("FLASH ENABLED"));
+		}
+		// if key is not inserted, ignore all bits from PORT2 (equivalently, take only bits from PORT1)
+		if(!keyInserted) {
+			switchValue &= PORT1_MASK;
 		}
 		ledVal = ~switchValue;
 		leds.write8(ledVal);
 		ethernet.write8(switchValue);
 	}
-	if(flashEnable && millis() > lastFlash + 50) { // flash the top 2 leds every 50 ms
+	if(keyInserted && millis() > lastFlash + 50) { // flash the top 2 leds every 50 ms
 		lastFlash = millis();
 		if(switchValue & FLASH_MASK == 0) { //only flash if the switches themselves are off
 			ledVal ^= FLASH_MASK;
